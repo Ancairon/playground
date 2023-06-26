@@ -1,0 +1,228 @@
+name: beanstalk
+title: Beanstalk Monitoring
+duplicate_for_virtual_integrations: []
+overview:
+  operation:
+    description: This collector connects to one or more [Beanstalk](https://beanstalkd.github.io/) instances, and monitors the metrics they expose.
+  platforms:
+    description: ""
+    boolean: true
+  multi-instance:
+    boolean: true
+  permissions:
+    description: ""
+    boolean: true
+  related:
+    description: To get the most out of your Beanstalk instances, you can monitor its processes for resources utilization and more. Check our related resources for more information.
+setup:
+  prerequisites:
+    list:
+      - title: Install python-beanstalkc
+        text: For this collector to work, you need to install the `python-beanstalkc` package.
+  behavior:
+    auto_detection:
+      description: TBD
+    limits:
+      description: ""
+    impact:
+      description: ""
+  configuration:
+    file:
+      description: python.d/beanstalk.conf
+    options:
+      description: ""
+      folding:
+        title: Config options
+        enabled: true
+      list:
+        - name: update_every
+          description: Data collection frequency.
+          default: 1
+          required: false
+        - name: priority
+          description: Defines the job's order on the dashboard.
+          default: 60000
+          required: false
+        - name: penalty
+          description: Penalty applied to update_every in case of failures.
+          default: yes
+          required: false
+        - name: autodetection_retry
+          description: When the job fails, restart attempts are made according to this interval.
+          default: 0
+          required: false
+        - name: chart_cleanup
+          description: The default chart cleanup interval measured in iterations.
+          default: 10
+          required: false
+        - name: host
+          description: Server IP address or hostname/
+          default: 12.0.0.1
+          required: yes
+        - name: port
+          description: Beanstalkd port
+          default: ""
+          required: yes
+    examples:
+      folding:
+        title: Config
+        enabled: false
+      list:
+        - name: Basic
+          description: A basic example configuration
+          data:
+            jobs:
+              - name: local
+                host: 127.0.0.1
+                port: 11300
+        - name: Multi-instance
+          description: |
+            Collecting metrics from local and remote instances
+          data:
+            jobs:
+              - name: local
+                host: 127.0.0.1
+                port: 11300
+              
+              - name: remote
+                host: 192.0.2.1
+                port: 11300
+troubleshooting:
+  problems:
+    list: []
+  debugging:
+    description: TBD Link to debugging doc
+  logs:
+    description: TBD for the moment
+related_resources:
+  integrations:
+    list:
+      - httpcheck
+    provide:
+      description: Benstalk collector provides server and tube-level statistics
+alerts:
+  - name: '[beanstalk_server_buried_jobs](https://gihtub.com/netdata/netdata/blob/master/health/health.d/beanstalkd.conf)'
+    metric: beanstalk.current_jobs
+    info: number of buried jobs across all tubes. You need to manually kick them so they can be processed. Presence of buried jobs in a tube does not affect new jobs.
+metrics:
+  description: ""
+  folding:
+    title: Metrics
+    enabled: false
+  scope:
+    global:
+      name: global
+      description: ""
+      labels: []
+      metrics:
+        - name: beanstalk.cpu_usage
+          description: Cpu Usage
+          unit: cpu time
+          dimensions:
+            - name: user
+            - name: system
+        - name: beanstalk.jobs_rate
+          description: Jobs Rate
+          unit: jobs/s
+          dimensions:
+            - name: total
+            - name: timeouts
+        - name: beanstalk.connections_rate
+          description: Connections Rate
+          unit: connections/s
+          dimensions:
+            - name: connections
+        - name: beanstalk.commands_rate
+          description: Commands Rate
+          unit: commands/s
+          dimensions:
+            - name: put
+            - name: peek
+            - name: peek-ready
+            - name: peek-delayed
+            - name: peek-buried
+            - name: reserve
+            - name: use
+            - name: watch
+            - name: ignore
+            - name: delete
+            - name: bury
+            - name: kick
+            - name: stats
+            - name: stats-job
+            - name: stats-tube
+            - name: list-tubes
+            - name: list-tube-used
+            - name: list-tubes-watched
+            - name: pause-tube
+        - name: beanstalk.connections_rate
+          description: Current Tubes
+          unit: tubes
+          dimensions:
+            - name: tubes
+        - name: beanstalk.current_jobs
+          description: Current Jobs
+          unit: jobs
+          dimensions:
+            - name: urgent
+            - name: ready
+            - name: reserved
+            - name: delayed
+            - name: buried
+        - name: beanstalk.current_connections
+          description: Current Connections
+          unit: connections
+          dimensions:
+            - name: written
+            - name: producers
+            - name: workers
+            - name: waiting
+        - name: beanstalk.binlog
+          description: Binlog
+          unit: records/s
+          dimensions:
+            - name: written
+            - name: migrated
+        - name: beanstalk.uptime
+          description: seconds
+          unit: seconds
+          dimensions:
+            - name: uptime
+    tube:
+      name: tube
+      description: The metrics refer to each of Beanstalk's tubes.
+      labels: []
+      metrics:
+        - name: beanstalk.jobs_rate
+          description: Jobs Rate
+          unit: jobs/s
+          dimensions:
+            - name: jobs
+        - name: beanstalk.jobs
+          description: Jobs
+          unit: jobs
+          dimensions:
+            - name: urgent
+            - name: ready
+            - name: reserved
+            - name: delayed
+            - name: buried
+        - name: beanstalk.connections
+          description: Connections
+          unit: connections
+          dimensions:
+            - name: using
+            - name: waiting
+            - name: watching
+        - name: beanstalk.commands
+          description: Commands
+          unit: commands/s
+          dimensions:
+            - name: deletes
+            - name: pauses
+        - name: beanstalk.pause
+          description: Pause
+          unit: seconds
+          dimensions:
+            - name: since
+            - name: left
