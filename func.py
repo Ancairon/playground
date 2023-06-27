@@ -5,7 +5,6 @@ import os
 import ruamel.yaml
 import pandas as pd
 import numpy as np
-import yaml as yl
 from ruamel.yaml import YAML, representer
 from collections import OrderedDict
 
@@ -15,6 +14,7 @@ class NoAliasDumper(ruamel.yaml.RoundTripRepresenter):
         return True
 
 module_count = 0
+
 def scrape_alerts():
     dict = {}
     dir = "./health/health.d"
@@ -60,7 +60,8 @@ def scrape_alerts():
                         try:
                             # nest_dict = {"name": name, "metric": metric, "os": operating_sys, "info": info}
                             nest_dict = {
-                                "name": f"[{name}](https://gihtub.com/netdata/netdata/blob/master/health/health.d/{filename})",
+                                "name": f"{name}",
+                                "link": f"https://gihtub.com/netdata/netdata/blob/master/health/health.d/{filename}",
                                 "metric": metric,
                                 "info": info,
                                 "os": opsys
@@ -85,39 +86,47 @@ def scrape_alerts():
 def csv_to_yaml(csv_file, yaml_file, alert_dict):
     yaml_string = """
 name: Collector name
-title: COLLECTORNAME Monitoring
+title: TBD Monitoring
 duplicate_for_virtual_integrations:
-  list: ["[Ubuntu](link to ubuntu)", "[Redhat](link to redhat)"]
+  list:
+    - "[TBD](link to TBD)"
+    - "[TBD](link to TBD)"
 overview:
-  operation:
-    description: This collector periodically does http requests to one or more {[Apache](link to collector)} (<- CI will remove the curly brackets, they are for replacing with the virtual integrations, to replace the link each time) web servers to collect the metrics mod_status plugin that apache exposes
-  platforms:
-    description: If this collector can't run on some platforms specify them here and set it to false, otherwise set this to true and this text will not be rendered, instead a templated message will appear
-    use_templated_text: true
-  multi-instance:
-    boolean: true
+  how_the_collector_works:
+    # The CI will remove the curly brackets in the link, they are for replacing with the virtual integrations, to replace the link each time
+    description: |
+        This collector works by... {[TBD](link to TBD)} ...
+  supported_platforms:
+    description: |
+        If this collector can't run on some platforms specify them here. Leave empty otherwise.
+  multi-instance: true
   permissions:
-    description: if there are any notable permission requirements, eg running as root and so on, specify them here and set it to false, otherwise set it to true and a templated message will appear
-    use_templated_text: true
-  related:
-    description: "give a simple description if there are any other collectors related to this collector. Example -> To get the most out of your apache servers, you can monitor its processes for resources utilization and their log files to turn them into real-time metrics. Check our related resources for more information. (if not, leave empty)"
+    description: |
+        if there are any notable permission requirements, eg running as root and so on, specify them here. Leave empty otherwise.
 setup:
   prerequisites:
     list:
       - title: Prerequisite title for heading
-        text: List like with dashes, TBD, use | and newline for multiline
+        text: |
+            - TBD
+            - TBD
   behavior:
     auto_detection:
-      description: "The collector auto-detects apache web servers running on localhost ports 80, 443, and 8080."
+      description: |
+        TBD
     limits:
-      description: "The collector is limited to x amount of tables or any other limitation, leave empty if none"
-    impact:
-      description: "Is there any impact on the application when using the default configuration? Maybe on a db collector having to many tables might slow down the db if collection happens per second, leave empty if none"
+      description: |
+        TBD
+    performance_impact:
+      description: |
+        TBD
   configuration:
     file:
-      description: "which file the user has to edit. Example: go.d/apache.conf"
+      description: |
+        which file the user has to edit. Example: go.d/apache.conf
     options:
-      description: TBD, use | and newline for multiline
+      description: |
+        TBD, use | and newline for multiline
       folding:
         title: Config options
         enabled: true
@@ -132,26 +141,33 @@ setup:
         enabled: false
       list:
         - name: Basic / else describe what this example is about
-          description: A basic example configuration / describe your example
-          data: input the example data in yaml format
+          description: |
+            A basic example configuration / describe your example
+          data:
+            jobs:
+                - name: example
+                  TBD: TBD
 troubleshooting:
   problems:
     list:
       - name: possible troubleshooting title
-        text: describe
-  debugging:
-    description: How to run this in debug mode? Use | and newline with indent, to write in markdown
-  logs:
-    description: How can I monitor logs for this plugin?
+        text: |
+            describe the issue and the troubleshooting process
 related_resources:
   integrations:
     list: [apache, weblog, httpcheck, etc]
+        # This text will be added in the overview section
+    overview_text: |
+        give a simple description if there are any other collectors related to this collector. Example -> To get the most out of TBD, you can do XYZ with collectors X Y and Z. Check our related resources for more information.
     provide:
-      description: What info I can provide for other plugins that reference me? this will only be visible in their end, they will scrape this text. Example -> apps.plugin allows monitoring individual processes CPU, Memory, Disk I/O and many more resources utilization.
+      description: |
+        What info I can provide for other plugins that reference me? this will only be visible in their end, they will scrape this text. Example -> XYZ allows monitoring X Y Z metrics...
 """
+    yaml = ruamel.yaml.YAML()
+    template = yaml.load(yaml_string)
 
-    template = yl.safe_load(yaml_string)
     global module_count
+    
     metricslist = []
     data = {}
     data["metrics"] = {}
@@ -318,7 +334,7 @@ related_resources:
 dir = "./collectors"
 
 for directory in next(os.walk(f"{dir}"))[1]:
-    # directory = "freebsd.plugin"
+    directory = "proc.plugin"
     # print("\n"+directory)
     alert_dict = scrape_alerts()
     try:
@@ -331,36 +347,36 @@ for directory in next(os.walk(f"{dir}"))[1]:
     except Exception as e:
         print("Exception", e)
 
-dir = "./collectors/python.d.plugin"
+# dir = "./collectors/python.d.plugin"
 
-for directory in next(os.walk(f"{dir}"))[1]:
-    # directory = "freebsd.plugin"
-    # print("\n"+directory)
-    alert_dict = scrape_alerts()
-    try:
-        csv_to_yaml(
-            f"{dir}/{directory}/metrics.csv",
-            f"{dir}/{directory}/metadata.yaml",
-            alert_dict,
-        )
+# for directory in next(os.walk(f"{dir}"))[1]:
+#     # directory = "freebsd.plugin"
+#     # print("\n"+directory)
+#     alert_dict = scrape_alerts()
+#     try:
+#         csv_to_yaml(
+#             f"{dir}/{directory}/metrics.csv",
+#             f"{dir}/{directory}/metadata.yaml",
+#             alert_dict,
+#         )
         
-    except Exception as e:
-        print("Exception", e)
-    # exit()
+#     except Exception as e:
+#         print("Exception", e)
+#     # exit()
 
-dir = "./collectors/charts.d.plugin"
+# dir = "./collectors/charts.d.plugin"
 
-for directory in next(os.walk(f"{dir}"))[1]:
-    # directory = "freebsd.plugin"
-    # print("\n"+directory)
-    alert_dict = scrape_alerts()
-    try:
-        csv_to_yaml(
-            f"{dir}/{directory}/metrics.csv",
-            f"{dir}/{directory}/metadata.yaml",
-            alert_dict,
-        )
+# for directory in next(os.walk(f"{dir}"))[1]:
+#     # directory = "freebsd.plugin"
+#     # print("\n"+directory)
+#     alert_dict = scrape_alerts()
+#     try:
+#         csv_to_yaml(
+#             f"{dir}/{directory}/metrics.csv",
+#             f"{dir}/{directory}/metadata.yaml",
+#             alert_dict,
+#         )
         
-    except Exception as e:
-        print("Exception", e)
+#     except Exception as e:
+#         print("Exception", e)
 print(module_count)
