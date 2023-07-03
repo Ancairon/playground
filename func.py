@@ -61,7 +61,7 @@ def scrape_alerts():
                             # nest_dict = {"name": name, "metric": metric, "os": operating_sys, "info": info}
                             nest_dict = {
                                 "name": f"{name}",
-                                "link": f"https://gihtub.com/netdata/netdata/blob/master/health/health.d/{filename}",
+                                "link": f"https://github.com/netdata/netdata/blob/master/health/health.d/{filename}",
                                 "metric": metric,
                                 "info": info,
                                 "os": opsys
@@ -93,7 +93,7 @@ duplicate_for_virtual_integrations:
     - "[TBD](link to TBD)"
 overview:
   how_the_collector_works:
-    # The CI will remove the curly brackets in the link, they are for replacing with the virtual integrations, to replace the link each time
+        # The CI will remove the curly brackets in the link, they are for replacing with the virtual integrations, to replace the link each time
     description: |
         This collector works by... {[TBD](link to TBD)} ...
   supported_platforms:
@@ -188,7 +188,7 @@ related_resources:
             description = row[4]
             unit = row[3]
             plugin = row[7]
-            dimensions = [{"name": n} for n in [x.strip() for x in row[2].split(",") if x]]
+            dimensions = [n for n in [x.strip() for x in row[2].split(",") if x]]
             scope = row[1]
             if not scope:
                 scope = "global"
@@ -204,6 +204,21 @@ related_resources:
             if scope not in metric[module]:
                 labels = [
                     {"name": x.strip(), "description": "TBD"}
+
+
+
+
+# TODO make description -> text
+
+
+
+
+
+
+
+
+
+
                     for x in row[6].split(",")
                     if x
                 ]
@@ -227,7 +242,9 @@ related_resources:
                     "dimensions": dimensions,
                 }
             )
+            # print(type(list(metric[module][scope])))
 
+            
             try:
                 alerts[module]
             except:
@@ -243,7 +260,7 @@ related_resources:
             # if name.startswith("system"):
             #     print(name, plugin)
             #     print(alert_dict[name])
-
+            # metric[module][scope] = list(metric[module][scope])
         # print("Module length", len(modules))
         try:
             if pd.isnull(modules.any()):
@@ -262,12 +279,15 @@ related_resources:
             module_count+=1
             # print("Module", module)
             # metricslist.append({"name": module ,"metrics":{"folding":{"title": "Metrics", "enabled":False},"scope":metric[module]}})
+            scope_array = []
+            for key in metric[module]:
+                scope_array.append(metric[module][key])
 
             template["alerts"] = alerts[module]
             template["metrics"] = {
                 "description": "some description for this section, or leave empty",
                 "folding": {"title": "Metrics", "enabled": False},
-                "scope": metric[module],
+                "scopes": scope_array,
             }
             template["name"] = module
             metricslist.append(template.copy())
@@ -330,27 +350,11 @@ related_resources:
 
 
 # print([x[0] for x in os.walk("./modules")])
-# dir = "./collectors/python.d.plugin"
-dir = "./collectors"
-
-for directory in next(os.walk(f"{dir}"))[1]:
-    directory = "proc.plugin"
-    # print("\n"+directory)
-    alert_dict = scrape_alerts()
-    try:
-        csv_to_yaml(
-            f"{dir}/{directory}/metrics.csv",
-            f"{dir}/{directory}/metadata.yaml",
-            alert_dict,
-        )
-        
-    except Exception as e:
-        print("Exception", e)
-
-# dir = "./collectors/python.d.plugin"
+# # dir = "./collectors/python.d.plugin"
+# dir = "./collectors"
 
 # for directory in next(os.walk(f"{dir}"))[1]:
-#     # directory = "freebsd.plugin"
+#     directory = "proc.plugin"
 #     # print("\n"+directory)
 #     alert_dict = scrape_alerts()
 #     try:
@@ -362,7 +366,25 @@ for directory in next(os.walk(f"{dir}"))[1]:
         
 #     except Exception as e:
 #         print("Exception", e)
-#     # exit()
+#     break
+
+dir = "./collectors/python.d.plugin"
+
+for directory in next(os.walk(f"{dir}"))[1]:
+    directory = "beanstalk"
+    # print("\n"+directory)
+    alert_dict = scrape_alerts()
+    try:
+        csv_to_yaml(
+            f"{dir}/{directory}/metrics.csv",
+            f"{dir}/{directory}/metadata.yaml",
+            alert_dict,
+        )
+        
+    except Exception as e:
+        print("Exception", e)
+    break
+    # exit()
 
 # dir = "./collectors/charts.d.plugin"
 
