@@ -164,7 +164,7 @@ related_resources:
         What info I can provide for other plugins that reference me? this will only be visible in their end, they will scrape this text. Example -> XYZ allows monitoring X Y Z metrics...
 """
     yaml = ruamel.yaml.YAML()
-    template = yaml.load(yaml_string)
+    template = {}
 
     global module_count
     
@@ -188,7 +188,8 @@ related_resources:
             description = row[4]
             unit = row[3]
             plugin = row[7]
-            dimensions = [n for n in [x.strip() for x in row[2].split(",") if x]]
+            chart_type = row[5]
+            dimensions = [{"name": n} for n in [x.strip() for x in row[2].split(",") if x]]
             scope = row[1]
             if not scope:
                 scope = "global"
@@ -202,33 +203,14 @@ related_resources:
                 metric[module] = {}
 
             if scope not in metric[module]:
-                labels = [
-                    {"name": x.strip(), "description": "TBD"}
-
-
-
-
-# TODO make description -> text
-
-
-
-
-
-
-
-
-
-
-                    for x in row[6].split(",")
-                    if x
-                ]
+                labels = [{"name": x.strip(), "description": "TBD"} for x in row[6].split(",") if x]
                 # for item in labels:
                 #     label
                 # metric[scope]= {"name":scope, "description":"TBD", "labels": labels, "metrics":[]}
 
                 metric[module][scope] = {
                     "name": scope,
-                    "description": "TBD",
+                    "description": "",
                     "labels": labels,
                     "metrics": [],
                 }
@@ -237,8 +219,10 @@ related_resources:
             metric[module][scope]["metrics"].append(
                 {
                     "name": name,
+                    "availability": [],
                     "description": description,
                     "unit": unit,
+                    "chart_type": chart_type,
                     "dimensions": dimensions,
                 }
             )
@@ -283,13 +267,15 @@ related_resources:
             for key in metric[module]:
                 scope_array.append(metric[module][key])
 
+            template["module_name"] = module
+            template["plugin_name"] = plugin
             template["alerts"] = alerts[module]
             template["metrics"] = {
-                "description": "some description for this section, or leave empty",
                 "folding": {"title": "Metrics", "enabled": False},
+                "description": "",
+                "availability": [],
                 "scopes": scope_array,
             }
-            template["name"] = module
             metricslist.append(template.copy())
             # print(template)
             # print(metricslist[len(metricslist)-1])
@@ -310,7 +296,7 @@ related_resources:
 
         if len(modules) > 1:
             # print("multi", len(modules))
-            finaldata = {"name": plugin, "title": "TBD", "modules": metricslist}
+            finaldata = {"name": plugin, "modules": metricslist}
 
             with open(yaml_file, "w") as yf:
                 # yaml.dump(data, yf, default_flow_style=False, sort_keys=False)
@@ -349,29 +335,11 @@ related_resources:
     # print(metricslist)
 
 
-# print([x[0] for x in os.walk("./modules")])
-# # dir = "./collectors/python.d.plugin"
-# dir = "./collectors"
-
-# for directory in next(os.walk(f"{dir}"))[1]:
-#     directory = "proc.plugin"
-#     # print("\n"+directory)
-#     alert_dict = scrape_alerts()
-#     try:
-#         csv_to_yaml(
-#             f"{dir}/{directory}/metrics.csv",
-#             f"{dir}/{directory}/metadata.yaml",
-#             alert_dict,
-#         )
-        
-#     except Exception as e:
-#         print("Exception", e)
-#     break
-
-dir = "./collectors/python.d.plugin"
+print([x[0] for x in os.walk("./modules")])
+dir = "./collectors"
 
 for directory in next(os.walk(f"{dir}"))[1]:
-    directory = "beanstalk"
+    # directory = "proc.plugin"
     # print("\n"+directory)
     alert_dict = scrape_alerts()
     try:
@@ -383,22 +351,39 @@ for directory in next(os.walk(f"{dir}"))[1]:
         
     except Exception as e:
         print("Exception", e)
-    break
+    # break
+
+dir = "./collectors/python.d.plugin"
+
+for directory in next(os.walk(f"{dir}"))[1]:
+    # directory = "beanstalk"
+    # print("\n"+directory)
+    alert_dict = scrape_alerts()
+    try:
+        csv_to_yaml(
+            f"{dir}/{directory}/metrics.csv",
+            f"{dir}/{directory}/metadata.yaml",
+            alert_dict,
+        )
+        
+    except Exception as e:
+        print("Exception", e)
+    # break
     # exit()
 
-# dir = "./collectors/charts.d.plugin"
+dir = "./collectors/charts.d.plugin"
 
-# for directory in next(os.walk(f"{dir}"))[1]:
-#     # directory = "freebsd.plugin"
-#     # print("\n"+directory)
-#     alert_dict = scrape_alerts()
-#     try:
-#         csv_to_yaml(
-#             f"{dir}/{directory}/metrics.csv",
-#             f"{dir}/{directory}/metadata.yaml",
-#             alert_dict,
-#         )
+for directory in next(os.walk(f"{dir}"))[1]:
+    # directory = "freebsd.plugin"
+    # print("\n"+directory)
+    alert_dict = scrape_alerts()
+    try:
+        csv_to_yaml(
+            f"{dir}/{directory}/metrics.csv",
+            f"{dir}/{directory}/metadata.yaml",
+            alert_dict,
+        )
         
-#     except Exception as e:
-#         print("Exception", e)
+    except Exception as e:
+        print("Exception", e)
 print(module_count)
