@@ -42,7 +42,9 @@ sudo ./edit-config go.d/apache.conf
 
 add setup.configuration.options.description here
 
-<!-- here there is a folding element, so you can do a <details> element with summary the folding.title, if it is disabled, then don't do folding with details-->
+<!-- here there is a global folding element, examples.folding.enabled, so you can do a <details> element with summary the folding.title, if it is true, then all examples fold by default and should provide a title for the summary section. If one example has examples.list.X.folding.enabled set to false, then don't fold that example.
+
+examples.list.X.folding.enabled seems to be required, so if that is set to true, there should be a title too.. albeit title is not required-->
 
 <!-- then we need a table, like: -->
 
