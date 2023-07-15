@@ -89,13 +89,9 @@ def csv_to_yaml(csv_file, yaml_file, alert_dict):
 
     with open("collectors/metadata/single-module-template.yaml") as stream:
         try:
-            template =yaml.safe_load(stream)
+            template = yaml.safe_load(stream)
         except yaml.YAMLError as exc:
             print(exc)
-
-    
-
-    
 
     global module_count
 
@@ -113,8 +109,6 @@ def csv_to_yaml(csv_file, yaml_file, alert_dict):
         # print(modules)
         # return
 
-
-
         for row in csv_data:
             name = row[0]
             description = row[4]
@@ -125,8 +119,6 @@ def csv_to_yaml(csv_file, yaml_file, alert_dict):
             scope = row[1]
             if not scope:
                 scope = "global"
-            
-
 
             module = row[8]
             if not module:
@@ -174,14 +166,6 @@ def csv_to_yaml(csv_file, yaml_file, alert_dict):
                 pass
                 # print("No alerts" , e)
 
-            # print(name)
-            # if name.startswith("system"):
-            #     print(name, plugin)
-            #     print(alert_dict[name])
-            # metric[module][scope] = list(metric[module][scope])
-        # print("Module length", len(modules))
-
-        #TODO figure out this if therer is a module and a global row
         try:
             if pd.isnull(modules.all()):
                 # print("it is null", yaml_file)
@@ -194,25 +178,20 @@ def csv_to_yaml(csv_file, yaml_file, alert_dict):
                 modules = [f"{plugin}"]
         except:
             pass
-        
-        
 
         for module in modules:
             try:
                 # print(module)
                 module_count += 1
-                # print("Module", module)
-                # metricslist.append({"name": module ,"metrics":{"folding":{"title": "Metrics", "enabled":False},"scope":metric[module]}})
                 scope_array = []
                 for key in metric[module]:
                     scope_array.append(metric[module][key])
 
-                dummy_template={}
+                dummy_template = {}
                 dummy_template = template.copy()
 
                 dummy_template["meta"]["module_name"] = module
                 dummy_template["meta"]["plugin_name"] = plugin
-
 
                 if plugin == module:
                     dummy_template["meta"]["monitored_instance"]["name"] = plugin.replace(".plugin", "")
@@ -230,7 +209,7 @@ def csv_to_yaml(csv_file, yaml_file, alert_dict):
                 metricslist.append(copy.deepcopy(dummy_template))
             except Exception as e:
                 print(e)
-        
+
         # print(metricslist)
 
         if len(modules) > 1:
@@ -262,81 +241,27 @@ def csv_to_yaml(csv_file, yaml_file, alert_dict):
                 # yaml.indent(mapping=2,sequence=4)
                 yaml.dump(finaldata[0], yf)
 
-            # print(name, description, unit,dimensions, labels)
-    # sample = []
-    # for element in metric.values():
-    #     sample.append(element)
-
-    # data["metrics"] = metric[scope]["metrics"]
-    # print(metric)
-    # data = {"metrics":{"folding":{"title": "Metrics", "enabled":False},"description":"TBD","scope":sample}}
-    # data = {"metrics":{"folding":{"title": "Metrics", "enabled":False},"scope":sample}}
-    # print(metricslist)
-
-
-# print([x[0] for x in os.walk("./modules")])
-dir = "./collectors"
-
-for directory in next(os.walk(f"{dir}"))[1]:
-    # print("\n"+directory)
-    # directory = "freeipmi.plugin"
-    alert_dict = scrape_alerts()
-    try:
-        csv_to_yaml(
-            f"{dir}/{directory}/metrics.csv",
-            f"{dir}/{directory}/metadata.yaml",
-            alert_dict,
-        )
-
-    except Exception as e:
-        print("Exception", e, directory)
-    # break
-
-dir = "./collectors/python.d.plugin"
-
-for directory in next(os.walk(f"{dir}"))[1]:
-    # directory = "beanstalk"
-    # print("\n"+directory)
-    alert_dict = scrape_alerts()
-    try:
-        csv_to_yaml(
-            f"{dir}/{directory}/metrics.csv",
-            f"{dir}/{directory}/metadata.yaml",
-            alert_dict,
-        )
-
-    except Exception as e:
-        print("Exception", e, directory)
-    # break
-    # exit()
-
-dir = "./collectors/charts.d.plugin"
-
-for directory in next(os.walk(f"{dir}"))[1]:
-    # directory = "freebsd.plugin"
-    # print("\n"+directory)
-    alert_dict = scrape_alerts()
-    try:
-        csv_to_yaml(
-            f"{dir}/{directory}/metrics.csv",
-            f"{dir}/{directory}/metadata.yaml",
-            alert_dict,
-        )
-
-    except Exception as e:
-        print("Exception", e, directory)
-
-print(module_count)
-
-
-
-
-
-# # print([x[0] for x in os.walk("./modules")])
-# dir = "../go.d.plugin/modules"
+# dir = "./collectors"
 
 # for directory in next(os.walk(f"{dir}"))[1]:
-#     directory = "chrony"
+#     # print("\n"+directory)
+#     # directory = "freeipmi.plugin"
+#     alert_dict = scrape_alerts()
+#     try:
+#         csv_to_yaml(
+#             f"{dir}/{directory}/metrics.csv",
+#             f"{dir}/{directory}/metadata.yaml",
+#             alert_dict,
+#         )
+
+#     except Exception as e:
+#         print("Exception", e, directory)
+#     # break
+
+# dir = "./collectors/python.d.plugin"
+
+# for directory in next(os.walk(f"{dir}"))[1]:
+#     # directory = "beanstalk"
 #     # print("\n"+directory)
 #     alert_dict = scrape_alerts()
 #     try:
@@ -347,5 +272,42 @@ print(module_count)
 #         )
 
 #     except Exception as e:
-#         print("Exception", e)
+#         print("Exception", e, directory)
 #     # break
+#     # exit()
+
+# dir = "./collectors/charts.d.plugin"
+
+# for directory in next(os.walk(f"{dir}"))[1]:
+#     # directory = "freebsd.plugin"
+#     # print("\n"+directory)
+#     alert_dict = scrape_alerts()
+#     try:
+#         csv_to_yaml(
+#             f"{dir}/{directory}/metrics.csv",
+#             f"{dir}/{directory}/metadata.yaml",
+#             alert_dict,
+#         )
+
+#     except Exception as e:
+#         print("Exception", e, directory)
+
+# print(module_count)
+
+
+dir = "../go.d.plugin/modules"
+
+for directory in next(os.walk(f"{dir}"))[1]:
+    directory = "chrony"
+    # print("\n"+directory)
+    alert_dict = scrape_alerts()
+    try:
+        csv_to_yaml(
+            f"{dir}/{directory}/metrics.csv",
+            f"{dir}/{directory}/metadata.yaml",
+            alert_dict,
+        )
+
+    except Exception as e:
+        print("Exception", e)
+    break
