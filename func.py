@@ -20,24 +20,28 @@ def scrape_alerts():
     dict = {}
     dir = "./health/health.d"
     for file in next(os.walk(f"{dir}"))[2]:
+        i = 0
         if file.endswith(".conf"):
             filename = file
             file = open(f"{dir}/{file}", "r")
 
             whole_file = file.readlines()
-            i = 0
+            
             name = ""
+            opsys = ""
 
             for index, line in enumerate(whole_file):
                 nest_dict = {}
                 i += 1
+                if "consul" in filename:
+                    print(len(whole_file), i)
                 # print("\n\nLINE:", line.strip("\n"))
                 if not line.startswith("#"):
                     # print("Line is",line)
                     if "template:" in line or "alarm:" in line:
                         # print("Line", line)
                         name = line.split(": ", 1)[1].strip("\n")
-                        # print(name)
+                        print(name)
                     if "on:" in line:
                         metric = line.split(": ", 1)[1].strip("\n")
                         # print(metric)
@@ -45,11 +49,11 @@ def scrape_alerts():
                         # line= line.replace("\\", "ABC")
                         # print(line, line.endswith("\\\n"))
                         info = line.split(": ", 1)[1].strip("\n").strip("\\")
-                        i = 1
+                        j = 1
                         while line.endswith("\\\n"):
                             # print("in")
-                            line = whole_file[index+i]
-                            i += 1
+                            line = whole_file[index+j]
+                            j += 1
                             info += line.strip("\\\n").lstrip()
                             # print(line)
                             # return
@@ -57,7 +61,7 @@ def scrape_alerts():
                     if "os:" in line:
                         opsys = line.split(": ", 1)[1].strip("\n")
 
-                    if name and (line == "\n" or i == len(whole_file) - 1):
+                    if name and (line == "\n" or i == len(whole_file)):
                         try:
                             # nest_dict = {"name": name, "metric": metric, "os": operating_sys, "info": info}
                             nest_dict = {
@@ -65,8 +69,10 @@ def scrape_alerts():
                                 "link": f"https://github.com/netdata/netdata/blob/master/health/health.d/{filename}",
                                 "metric": metric,
                                 "info": info,
-                                "os": ruamel.yaml.scalarstring.DoubleQuotedScalarString(opsys)
                             }
+
+                            if opsys:
+                                nest_dict['os'] = ruamel.yaml.scalarstring.DoubleQuotedScalarString(opsys)
 
                             try:
                                 dict[metric]
@@ -78,6 +84,7 @@ def scrape_alerts():
 
                             name = None
                             info = None
+                            opsys= None
 
                         except Exception as e:
                             print("Exception", e)
@@ -298,7 +305,7 @@ def csv_to_yaml(csv_file, yaml_file, alert_dict):
 dir = "../go.d.plugin/modules"
 
 for directory in next(os.walk(f"{dir}"))[1]:
-    directory = "chrony"
+    directory = "redis"
     # print("\n"+directory)
     alert_dict = scrape_alerts()
     try:
