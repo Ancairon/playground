@@ -1,9 +1,14 @@
+
+
 # Applications
 
 Plugin: apps.plugin
 Module: apps
 
 `Netdata`
+
+<span title="This is a tooltip">❓</span>
+
 
 ## Overview
 
@@ -31,6 +36,8 @@ Plugin: go.d.plugin
 Module: prometheus
 
 `Community`
+
+<span title="This is another tooltip">❓</span>
 
 ## Overview
 
