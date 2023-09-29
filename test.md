@@ -5,7 +5,7 @@
 Plugin: apps.plugin
 Module: apps
 
-<span title="This is an integration made by Netdata">`Netdata`</span>
+<img src="https://img.shields.io/badge/maintained%20by-Netdata-%2300ab44" />
 
 
 ## Overview
@@ -33,7 +33,7 @@ This collector supports collecting metrics from multiple instances of this integ
 Plugin: go.d.plugin
 Module: prometheus
 
-<span title="This is an integration made by the Community">`Community`</span>
+<img src="https://img.shields.io/badge/maintained%20by-Community-blue" />
 
 ## Overview
 
