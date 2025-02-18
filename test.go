@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -151,7 +153,6 @@ func FindMatchingProfiles(profiles map[string]*Profile, deviceOID string) []*Pro
 
 	for _, profile := range profiles {
 		for _, oidPattern := range profile.SysObjectID {
-			log.Print(strings.Split(oidPattern, "*")[0])
 			if strings.HasPrefix(deviceOID, strings.Split(oidPattern, "*")[0]) {
 				matchedProfiles = append(matchedProfiles, profile)
 				break
@@ -183,7 +184,7 @@ func ScanSubnet(subnet string, community string, timeout time.Duration) []string
 				ipMutex.Lock()
 				ips = append(ips, ip)
 				ipMutex.Unlock()
-				fmt.Printf("[✔] SNMP Device Found: %s\n", ip)
+				fmt.Printf("SNMP Device Found: %s\n", ip)
 			}
 		}(targetIP)
 	}
@@ -243,43 +244,77 @@ func GetSysObjectID(snmp *gosnmp.GoSNMP) (string, error) {
 	return strings.SplitN(fmt.Sprintf("%v", result.Variables[0].Value), ".", 2)[1], nil
 }
 
-func WalkOID(snmp *gosnmp.GoSNMP, oid string, metricName string, results map[string]string) {
-	err := snmp.Walk(oid, func(pdu gosnmp.SnmpPDU) error {
-		rootOID, index := splitOID(pdu.Name)
-		value := formatSNMPValue(pdu.Value)
+// Execute SNMPWalk via shell command
+func SNMPWalkExec(target string, community string) (map[string]string, error) {
+	results := make(map[string]string)
 
-		if index != "" {
-			fullMetricName := fmt.Sprintf("%s[%s]", metricName, index)
-			results[fullMetricName] = value
-			fmt.Printf("%s (%s) = %s\n", fullMetricName, rootOID, value)
-		} else {
-			if existing, exists := results[rootOID]; !exists || existing != value {
-				results[rootOID] = value
-				fmt.Printf("%s (%s) = %s\n", metricName, rootOID, value)
-			}
-		}
-		return nil
-	})
+	fmt.Printf("Executing SNMP walk for device %s\n", target)
 
+	// Construct the snmpwalk command
+	cmd := exec.Command("snmpwalk", "-v2c", "-c", community, target, "1.3.6.1.4.1") // Walk entire SNMP tree
+
+	// Capture the output
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	// Run the command
+	err := cmd.Run()
 	if err != nil {
-		log.Printf("SNMP Walk failed for OID %s: %v", oid, err)
+		return nil, fmt.Errorf("snmpwalk failed: %v", err)
 	}
+
+	fmt.Print("Command ran\nParsing output\n")
+
+	// Parse output
+	lines := strings.Split(out.String(), "\n")
+	for _, line := range lines {
+		parts := strings.SplitN(line, " = ", 2)
+		if len(parts) == 2 {
+			oid := strings.Replace(strings.TrimSpace(parts[0]), "iso", "1", -1)
+			value := strings.TrimSpace(parts[1])
+			results[oid] = value
+		}
+	}
+
+	fmt.Print("Parsing done\n")
+
+	return results, nil
 }
 
-func splitOID(oid string) (string, string) {
-	parts := strings.Split(oid, ".")
-	if len(parts) > 8 {
-		return strings.Join(parts[:8], "."), strings.Join(parts[8:], ".")
-	}
-	return oid, ""
-}
+// Execute SNMPWalk via shell command
+func SNMPGetExec(target string, oid string, community string) (string, error) {
+	// result := make(map[string]string)
 
-func formatSNMPValue(value interface{}) string {
-	return fmt.Sprintf("%v", value)
+	// Construct the snmpwalk command
+	cmd := exec.Command("snmpget", "-v2c", "-c", community, target, oid) // Walk entire SNMP tree
+
+	// Capture the output
+	var out bytes.Buffer
+	cmd.Stdout = &out
+
+	// Run the command
+	err := cmd.Run()
+	if err != nil {
+		return "error", fmt.Errorf("snmpget failed: %v", err)
+	}
+
+	// // Parse output
+	// lines := strings.Split(out.String(), "\n")
+	// for _, line := range lines {
+	// 	parts := strings.SplitN(line, " = ", 2)
+	// 	if len(parts) == 2 {
+	// 		oid := strings.Replace(strings.TrimSpace(parts[0]), "iso", "1", -1)
+	// 		value := strings.TrimSpace(parts[1])
+	// 		results[oid] = value
+	// 	}
+	// }
+	return out.String(), nil
+
 }
 
 func main() {
-	profileDir := "./integrations-core/snmp/datadog_checks/snmp/data/default_profiles/"
+	profileDir := "./default_profiles/"
+	// profileDir := "./integrations-core/snmp/datadog_checks/snmp/data/default_profiles/"
 	subnet := "20.20.21.0/24" // CHANGE THIS TO YOUR SUBNET
 	community := "public"
 	timeout := 2 * time.Second
@@ -295,6 +330,8 @@ func main() {
 	if len(devices) == 0 {
 		log.Fatal("No active SNMP devices found in subnet")
 	}
+
+	// deviceDict := make(map[string]map[string]int)
 
 	// Iterate over discovered devices
 	for _, deviceIP := range devices {
@@ -313,6 +350,16 @@ func main() {
 		}
 		defer snmp.Conn.Close()
 
+		// deviceData, err := SNMPWalkExec(deviceIP, community)
+		// if err != nil {
+		// 	log.Fatalf("SNMP Walk failed: %v", err)
+		// }
+
+		// Print results
+		// for oid, value := range deviceData {
+		// 	fmt.Printf("%s = %s\n", oid, value)
+		// }
+
 		fmt.Println("Fetching sysObjectID...")
 
 		// Get sysObjectID of the device
@@ -329,19 +376,95 @@ func main() {
 			log.Printf("No matching profile found for sysObjectID: %s", sysObjectID)
 		}
 
-		// Store unique results
-		results := make(map[string]string)
+		// // **🌟 Fetch all SNMP data once**
+		// fmt.Println("Performing SNMP Walk for the entire device...")
+		// deviceData, err := WalkDevice(snmp)
+		// if err != nil {
+		// 	log.Fatalf("SNMP Walk failed: %v", err)
+		// }
+
+		// fmt.Print(deviceData)
+
+		// // // Store unique results
+		// // results := make(map[string]string)
 
 		// Walk through the SNMP device using all matched profiles
 		for _, profile := range matchingProfiles {
 			for _, metric := range profile.Metrics {
 				if metric.Symbol != nil {
-					WalkOID(snmp, metric.Symbol.OID, metric.Symbol.Name, results)
-				} else if metric.Table != nil {
-					for _, sym := range metric.Symbols {
-						WalkOID(snmp, sym.OID, sym.Name, results)
+					response, err := SNMPGetExec(deviceIP, metric.Symbol.OID, "public")
+					if err != nil {
+						log.Fatalf("SNMP Exec failed: %v", err)
 					}
+
+					metricName := metric.Symbol.Name
+					metricSplit := strings.SplitN(strings.SplitN(response, " = ", 2)[1], ": ", 2)
+					metricType := metricSplit[0]
+					metricValue := metricSplit[1]
+
+					fmt.Printf("METRIC: %s | %s | %s\n", metricName, metricType, metricValue)
+
+					// fmt.Print(response, "\n")
+				} else if metric.Table != nil {
+					for _, symbol := range metric.Symbols {
+						if len(symbol.OID) > 1 {
+							response, err := SNMPGetExec(deviceIP, symbol.OID, "public")
+							if err != nil {
+								log.Fatalf("SNMP Exec failed: %v", err)
+							}
+
+							if !strings.Contains(response, "No Such") || !strings.Contains(response, "at this OID") {
+
+								fmt.Print(response, "\n")
+								fmt.Print("FOUND TABLE REEEEE", deviceIP)
+								os.Exit(-129)
+							}
+						}
+					}
+					// fmt.Print("something")
 				}
+				// if metric.Symbol != nil {
+				// 	val, ok := deviceData[metric.Symbol.OID]
+				// 	// If the key exists
+				// 	if ok {
+				// 		// Do something
+				// 		// you have the symbol found here
+
+				// 		metricName := metric.Symbol.Name
+				// 		metricSplit := strings.SplitN(val, ": ", 2)
+				// 		metricType := metricSplit[0]
+				// 		metricValue := metricSplit[1]
+
+				// 		fmt.Printf("METRIC: %s | %s | %s\n", metricName, metricType, metricValue)
+
+				// 	}
+				// 	// for key := range deviceData {
+				// 	// 	if strings.Contains(key, metric.Symbol.OID) {
+				// 	// 		fmt.Println("Found:", key)
+				// 	// 	}
+				// } else if metric.Table != nil {
+				// 	fmt.Print("TABLE FOUND\n")
+				// 	metricName := metric.Symbol.Name
+				// 	metricSplit := strings.SplitN(val, ": ", 2)
+				// 	metricType := metricSplit[0]
+				// 	metricValue := metricSplit[1]
+
+				// 	fmt.Printf("METRIC: %s | %s | %s\n", metricName, metricType, metricValue)
+				// 	// os.Exit(19)
+
+				// }
+
+				// WalkOID(snmp, metric.Symbol.OID, metric.Symbol.Name, results)
+				// // 			// deviceDict["0"]["1"] = 1
+				// // 		} else if metric.Table != nil {
+				// // 			for _, sym := range metric.Symbols {
+				// // 				fmt.Printf("HERE %s\n", sym.OID)
+				// // 				// os.Exit(1)
+				// // 				// WalkOID(snmp, sym.OID, sym.Name, results)
+
+				// // 				// todo build a savable index here, and call the func to update it. The dict would be metric_name and value. it can be MIB.name and if it is a table an index I guess
+				// // 			}
+				// // 		}
 			}
 		}
 	}
